@@ -1,0 +1,119 @@
+#!/bin/bash
+################################################################
+#
+#	   Writer: Robert C. Burkhall
+#	     Date: Aug 22, 2015
+#	   Script: createVMDK2		
+#    Function: Provides unified creation, deletion, 
+#	 		   and authorization of Virtualbox files
+#			   that access host physical drives
+#
+# enable debug
+# set -x  #<-- Uncomment
+################################################################
+#
+# Variables
+diskNumber=“”
+driveName=“”
+userID=””
+cr=0
+
+################################################################
+#
+#### Functions
+#
+
+# Usage
+usage() {
+cat << EOF
+usage: createVMDKs -d 0 -v Windows10 -u robert
+   -c = create vmdk files
+   -x = delete vmdk files
+   Authorize Only, Enable virtualbox physical access & ejecting drive   
+   -d = disk number 
+   -v = drive name
+   -u = user name
+EOF
+}
+
+# Create Disk files
+createDisk() {
+	echo "Attempting to create the following Virtual Drive:
+	Disk: $1, Vol: $2, Usr: $3
+	Starting…"
+
+	if sudo VBoxManage internalcommands createrawvmdk -filename $2.vmdk -rawdisk /dev/disk$1 ; then
+		echo "Create Disk Completed!"
+	else
+		error_exit "Create Disk Failed with supplied parameters!"
+	fi 
+}
+
+# Process Passed Arguments
+processArgs() {
+	#1=$@
+	while [[ $# -gt 0 ]] && [[ ."$1" = .-* ]] ; 
+		do
+			var=“$1”
+			shift; 
+			case $var in
+				“-d” ) diskNumber=$1; shift; echo $var 
+				;;	
+				“-v” ) driveName=$1; shift; echo $var 
+				;;
+				“-u” ) userID=$1; shift; echo $var 
+				;;
+				“-c” ) cr="1";
+				;;
+				“-x” ) del="1"; 
+				;;
+			esac
+		done
+		
+		if [ "$del" == "1" ] && [ "$driveName" != "" ] && [ -f "$driveName.vmdk" ]; then
+			if rm -rf $driveName*; then
+				echo "Exiting...Drive Dropped."
+			else
+				error_exit "Drive Drop failed."
+			fi			
+	    elif [ "$cr" == "1" ]; then 
+			if createDisk $diskNumber $driveName $userID; then
+				echo "Creation Succeeded."
+			else	
+				error_exit "Creation failed with paramameters supplied."
+			fi			
+		fi
+		
+}
+
+# Authorize drive for physical access by Virtualbox
+authorizeDrive() {
+	# Assign user as owner
+	sudo chown -R $userID:staff /dev/disk$diskNumber
+	sudo chown -R $userID:staff $driveName*
+
+	#  Establish R/W Access & Eject Drive
+	chmod -R 777 $driveName*
+	chmod 777 /dev/disk$diskNumber
+	diskutil eject /dev/disk$diskNumber
+	echo "Drive authorized & dis-mounted."
+}
+
+# An error exit function
+error_exit() {
+	echo "$1" 1>&2
+	exit 1
+}
+
+################################################################
+#
+#### Script Starts Here
+#
+if [[ $# -eq 0 ]]; then  usage ; exit; fi
+processArgs "$@"
+if authorizeDrive $diskNumber $driveName $userID; then
+	exit 0
+else
+	error_exit "Script can't continue...See Console for errors."
+fi
+
