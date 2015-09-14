@@ -9,8 +9,7 @@
 #			   that access host physical drives
 #
 # enable debug
-# 
-set -x  #<-- Uncomment
+# set -x  #<-- Uncomment
 ################################################################
 #
 # Variables
