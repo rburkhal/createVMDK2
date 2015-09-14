@@ -7,6 +7,8 @@
 #    Function: Provides unified creation, deletion, 
 #	 		   and authorization of Virtualbox files
 #			   that access host physical drives
+#        Note: VMDK file type is used in this script but could be
+#			   modifed for other storage file types
 #
 # enable debug
 # set -x  #<-- Uncomment
