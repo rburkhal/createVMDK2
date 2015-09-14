@@ -128,4 +128,3 @@ if authorizeDrive $diskNumber $part $driveName $userID; then
 else
 	error_exit "Script can't continue...See Console for errors."
 fi
-
