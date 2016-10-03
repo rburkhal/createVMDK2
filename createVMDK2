@@ -33,7 +33,7 @@ usage: createVMDKs -d 0 -v Windows10 -u robert
    -c = create vmdk files
    -x = delete vmdk files
    Authorize Only, Enable virtualbox physical access & ejecting drive   
-   -d = disk number 
+   -d = disk number (GNU/Linux): a,b,c, etc
    -p = partition number
    -v = drive name
    -u = user name
@@ -45,12 +45,21 @@ createDisk() {
 	echo "Attempting to create the following Virtual Drive:
 	Disk: $1, Partition: $2 Vol: $3, Usr: $4
 	Starting…"
+	#set -x
+	vboxDisk=
+	if [ '`uanme -o`' == 'Darwin' ]; then
+		vboxDisk='/dev/disk'$1;
+	elif [ '`uanme -o`' != 'GNU/Linux' ]; then
+		vboxDisk='/dev/sd'$1$2;
+	fi; 
 
-	if sudo VBoxManage internalcommands createrawvmdk -filename $2.vmdk -rawdisk /dev/disk$1 -partitions $part ; then
+	#if sudo VBoxManage internalcommands createrawvmdk -filename $3.vmdk -rawdisk $vboxDisk -partitions $2 ; then
+	if sudo VBoxManage internalcommands createrawvmdk -filename $3.vmdk -rawdisk $vboxDisk  ; then
 		echo "Create Disk Completed!"
 	else
 		error_exit "Create Disk Failed with supplied parameters!"
 	fi 
+	#set +x;
 }
 
 # Process Passed Arguments
@@ -83,7 +92,7 @@ processArgs() {
 				error_exit "Drive Drop failed."
 			fi			
 	    elif [ "$cr" == "1" ]; then 
-			if createDisk $diskNumber $driveName $userID; then
+			if createDisk $diskNumber $part $driveName $userID; then
 				echo "Creation Succeeded."
 			else	
 				error_exit "Creation failed with paramameters supplied."
@@ -95,19 +104,37 @@ processArgs() {
 # Authorize drive for physical access by Virtualbox
 authorizeDrive() {
 	if [ "$del" == "1" ]; then return; fi 
-	# Assign user as owner
-	sudo chown -R $userID:staff /dev/disk$diskNumber
-	sudo chown -R $userID:staff $driveName*
-
 	#  Establish R/W Access & Eject Drive
 	sudo chmod -R 777 $driveName*
-	if [ "$part" != "1" ]; then
-		par="s$part"
-		sudo chmod 777 /dev/disk$diskNumber$par
-		diskutil eject /dev/disk$diskNumber$par
-	else
-		sudo chmod 777 /dev/disk$diskNumber	
-		diskutil eject /dev/disk$diskNumber
+	
+	if [ '`uname -o`' == 'Darwin' ]; then
+		# Assign user as owner
+		echo 'Darwin OS - Detected'
+		sudo chown -R $userID:staff /dev/disk$diskNumber
+		sudo chown -R $userID:staff $driveName*
+
+		if [ "$part" != "1" ]; then
+			par="s$part"
+			sudo chmod 777 /dev/disk$diskNumber$par
+			diskutil eject /dev/disk$diskNumber$par
+		else
+			sudo chmod 777 /dev/disk$diskNumber	
+			diskutil eject /dev/disk$diskNumber
+		fi
+	elif [ `uname -o` == 'GNU/Linux' ]; then
+		echo 'GNU/Linux OS - Detected'
+		# Assign user as owner
+		sudo chown -R $userID: /dev/sd$diskNumber
+		sudo chown -R $userID: $driveName*
+
+		if [ "$part" != "1" ]; then
+			par="$part"
+			sudo chmod 777 /dev/sd$diskNumber$par
+			sudo umount /dev/sd$diskNumber$par
+		else
+			sudo chmod 777 /dev/sd$diskNumber	
+			sudo umount /dev/sd$diskNumber$par
+		fi		
 	fi
 	echo "Drive authorized & dis-mounted."
 }
