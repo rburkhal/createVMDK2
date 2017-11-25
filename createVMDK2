@@ -47,9 +47,9 @@ createDisk() {
 	Starting…"
 	#set -x
 	vboxDisk=
-	if [ '`uanme -o`' == 'Darwin' ]; then
+	if [ "$(uname)" == "Darwin" ]; then
 		vboxDisk='/dev/disk'$1;
-	elif [ '`uanme -o`' != 'GNU/Linux' ]; then
+	elif [ '`uname -o`' != 'GNU/Linux' ]; then
 		vboxDisk='/dev/sd'$1$2;
 	fi; 
 
