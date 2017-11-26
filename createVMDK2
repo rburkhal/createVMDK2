@@ -49,8 +49,8 @@ createDisk() {
 	vboxDisk=
 	if [ "$(uname)" == "Darwin" ]; then
 		vboxDisk='/dev/disk'$1;
-	elif [ '`uname -o`' != 'GNU/Linux' ]; then
-		vboxDisk='/dev/sd'$1$2;
+	elif [ "$(uname -o)" != "GNU/Linux" ]; then
+		vboxDisk="/dev/sd"$1$2;
 	fi; 
 
 	#if sudo VBoxManage internalcommands createrawvmdk -filename $3.vmdk -rawdisk $vboxDisk -partitions $2 ; then
@@ -59,7 +59,6 @@ createDisk() {
 	else
 		error_exit "Create Disk Failed with supplied parameters!"
 	fi 
-	#set +x;
 }
 
 # Process Passed Arguments
@@ -107,7 +106,7 @@ authorizeDrive() {
 	#  Establish R/W Access & Eject Drive
 	sudo chmod -R 777 $driveName*
 	
-	if [ '`uname -o`' == 'Darwin' ]; then
+	if [ "$(uname)" == "Darwin" ]; then
 		# Assign user as owner
 		echo 'Darwin OS - Detected'
 		sudo chown -R $userID:staff /dev/disk$diskNumber
@@ -121,7 +120,7 @@ authorizeDrive() {
 			sudo chmod 777 /dev/disk$diskNumber	
 			diskutil eject /dev/disk$diskNumber
 		fi
-	elif [ `uname -o` == 'GNU/Linux' ]; then
+	elif [ "$(uname -o)" == "GNU/Linux" ]; then
 		echo 'GNU/Linux OS - Detected'
 		# Assign user as owner
 		sudo chown -R $userID: /dev/sd$diskNumber
